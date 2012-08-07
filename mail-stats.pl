@@ -3,7 +3,6 @@ use warnings;
 use strict;
 use v5.10;
 use LWP::Simple;
-use autodie;
 use File::Temp qw(tempdir);
 
 =pod
@@ -18,7 +17,7 @@ Make the statistics for your mailgroup. For now it uses C<wget> and C<gzip> so I
 
 =cut
 
-my ( @files, @file, @name, @names, $year, $name, $num, $first, $firs, $sec, $third, $forth,
+my ( @files, @file, @name, @names, $year, $name, $num, $firstname, $first, $sec, $third, $forth,
 $fifth, $six, $seven, $eight, $nin, $ten, %post, %names );
 our $VERSION = 0.09;
 my $file = "file.txt";
@@ -53,11 +52,11 @@ my $dir = tempdir( CLEANUP => 1 );
 
 getstore("$url", "$dir/mail.txt") or die "Unable to get page: $!";
 
-open FILE, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
+open my $html, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
 
 # making the info in an easy way to read and use.
 
-while (<FILE>) {
+while (<$html>) {
 	if ( $_ =~ /gzip/i ) {
 		s/<td><A href="/http:\/\/mail.perl.org.il\/pipermail\/perl\//;
 		s/"\>\[ Gzip'd Text \d{1,6} KB \]\<\/a\>\<\/td>//;
@@ -66,7 +65,7 @@ while (<FILE>) {
 	}
 }
 
-close FILE;
+close $html;
 
 # downloading the needed files and extracting them.
 
@@ -78,10 +77,10 @@ system("gzip -d $dir/*.gz");
 
 # reading the files.
 
-opendir DIR, "$dir" or die "can't open direcory $dir: $! ";
-open FILE05, ">", "$dir$file" or die "can't open file $file: $! ";
+opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
+open my $FILE05, ">", "$dir$file" or die "can't open file $file: $! ";
 
-while ( my $file = readdir(DIR) ) {
+while ( my $file = readdir($DIR) ) {
 	next if $file eq "." or $file eq "..";
 	push @file, $file;
 }
@@ -89,22 +88,22 @@ while ( my $file = readdir(DIR) ) {
 # writing the needed info for the stats.
 
 for ( @file ) {
-	open FILE, "<", "$dir/$_" or die "can't open $_ : $! ";
+	open my $FILE, "<", "$dir/$_" or die "can't open $_ : $! ";
 	if ( $_ =~ /$year/ ) {
-		while ( <FILE> ) {
-			say FILE05 $_;
+		while ( <$FILE> ) {
+			say $FILE05 $_;
 		}
 	}
 }
 
-close FILE05 or die "can't close file: $! ";
+close $FILE05 or die "can't close file: $! ";
 
 # reading the file to populate the variables for the stats.
 
-open FI05, "<", "$dir$file" or die "can't open file $file: $! ";
+open my $FI05, "<", "$dir$file" or die "can't open file $file: $! ";
 
 $num = 0;
-while ( <FI05> ) {
+while ( <$FI05> ) {
 	if ( $_ =~ /\AFrom:/ and $_ =~ /\(/ ) {
 		s/\)//;
 		@name = split /\(/, $_;
@@ -126,8 +125,8 @@ my @sort = sort { $a <=> $b } ( values %names );
 
 for ( keys %names ) {
 	if ( $names{$_} == $sort[-1] ) {
-		$first = $_;
-		$firs = $names{$_};
+		$firstname = $_;
+		$first = $names{$_};
 	} if ( $names{$_} == $sort[-2] ) {
 		$sec = $names{$_};
 	} if ( $names{$_} == $sort[-3] ) {
@@ -151,15 +150,15 @@ for ( keys %names ) {
 
 # making the statistics.
 
-my $percent = 100 * ( $firs + $sec + $third + $forth + $fifth + $six + $seven + $eight + $nin + $ten ) / $num;
-my $per = 100 * $firs / $num;
+my $percentten = 100 * ( $first + $sec + $third + $forth + $fifth + $six + $seven + $eight + $nin + $ten ) / $num;
+my $percentfirst = 100 * $first / $num;
 
 # writing the statistics on the terminal.
 
 say "we had $n participants and they sent $num posts in $year";
-print "the participant with the most posts is $first with ";
-printf( "%.1f", $per );
+print "the participant with the most posts is $firstname with ";
+printf( "%.1f", $percentfirst );
 say "% of the posts";
 print "the top 10 posters made about ";
-printf("%.1f", $percent);
+printf("%.1f", $percentten);
 say "% of the posts";
