@@ -1,8 +1,10 @@
 #!/usr/bin/perl
+
 use warnings;
 use strict;
 use v5.10;
 use LWP::Simple;
+#use List::Util::sum;
 use File::Temp qw(tempdir);
 
 =pod
@@ -40,8 +42,8 @@ my $year = <STDIN>;
 chomp $year;
 
 print "Whats the URL of your mails archive? ";
-my $url = <STDIN>;
-chomp $url;
+my $input_url = <STDIN>;
+chomp $input_url;
 
 print "Percent of how many participant do you want to calculate? ";
 my $number = <STDIN>;
@@ -54,7 +56,7 @@ my $dir = tempdir( CLEANUP => 1 );
 # the file we create for use to get the files of the archives we need to make stats of.
 
 html {
-	getstore("$url", "$dir/mail.txt") or die "Unable to get page: $!";
+	getstore("$input_url", "$dir/mail.txt") or die "Unable to get page: $!";
 
 	open my $html, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
 
@@ -63,7 +65,7 @@ html {
 	while (my $gzip = <$html>) {
 		if ( $gzip =~ /gzip/i ) {
 			chomp $gzip;
-			$gzip =~ s/<td><A href="/$url\//;
+			$gzip =~ s/<td><A href="/$input_url\//;
 			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} KB \]\<\/a\>\<\/td>//;
 			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} bytes \]\<\/a\>\<\/td>//;
 			push @files, $gzip if $gzip =~ /$year/;
@@ -74,13 +76,12 @@ html {
 }
 
 down {
-	print "downloading and extracting the files, please be patient...\n\n";
+	print "Downloading and extracting the files, please be patient...\n\n";
 	# downloading the needed files and extracting them.
-	for ( @files ) {
-#		system("wget -P $dir $_") if $_ =~ /$year/;
-		my $ur = $_;
-		s/$url\///;
-		getstore("$ur", "$dir/$_") or die "Unable to get page: $!";
+	for my $file_name ( @files ) {
+		my $url = $file_name;
+		$file_name =~ s/$input_url\///;
+		getstore("$url", "$dir/$file_name") or die "Unable to get page: $!";
 	}
 	system("gzip -d $dir/*.gz");
 }
@@ -90,23 +91,24 @@ merge {
 	# reading the files.
 
 	opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
-	open my $FILE05, ">", "$dir$file_name" or die "can't open file $file_name: $! ";
 
 	while ( my $file_name = readdir($DIR) ) {
-		next if $file_name eq "." or $file_name eq "..";
-		push @file, $file_name;
+		push @file, $file_name if $file_name =~ /$year/;
 	}
-
+	
+	open my $input_file, ">", "$dir$file_name" or die "can't open file $file_name: $! ";
+	
 	# writing the needed info for the stats.
-	for ( @file ) {
-		open my $FILE, "<", "$dir/$_" or die "can't open $_ : $! ";
-		if ( $_ =~ /$year/ ) {
-			while ( <$FILE> ) {
-				say $FILE05 $_;
-			}
+	for my $file ( @file ) {
+		open my $output_file, "<", "$dir/$file" or die "can't open $file : $! ";
+		
+		while ( <$output_file> ) {
+			print $input_file $_;
 		}
 	}
-	close $FILE05 or die "can't close file: $! ";
+	
+	close $input_file or die "can't close file: $! ";
+	
 }
 
 var {
