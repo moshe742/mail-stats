@@ -13,13 +13,13 @@ stats - statistics maker for mail archives of groups.
 
 =head1 DESCRIPTION
 
-Make the statistics for your mailgroup. For now it uses C<wget> and C<gzip> so I'm not sure it will work on other platforms. 
+Make the statistics for your mailgroup. For now it uses C<gzip> so I'm not sure it will work on other platforms. 
 
 =cut
 
-my ( @files, @names, $year, $num, %names );
+my ( @files, @names, $num, %names );
 our $VERSION = 0.09;
-my $file = "file.txt";
+my $file_name = "file.txt";
 
 =pod
 
@@ -29,12 +29,14 @@ Here you will be asked the year that you want to work on and what is the mail ar
 
 The first question is about the year you want to analyze and the second is about your site for the archives of your group.
 
-Type the url fully (including the http://), since the script use wget for the fetching of the data.
+Type the url fully (including the http://), since the script use the getstore function for the fetching
+
+of the data.
 
 =cut
 
 print "which year do you want to get stats for? ";
-$year = <STDIN>;
+my $year = <STDIN>;
 chomp $year;
 
 print "Whats the URL of your mails archive? ";
@@ -58,12 +60,13 @@ html {
 
 	# making the info in an easy way to read and use.
 
-	while (<$html>) {
-		if ( $_ =~ /gzip/i ) {
-			s/<td><A href="/$url\//;
-			s/"\>\[ Gzip'd Text \d{1,6} KB \]\<\/a\>\<\/td>//;
-			s/"\>\[ Gzip'd Text \d{1,6} bytes \]\<\/a\>\<\/td>//;
-			push @files, $_;
+	while (my $gzip = <$html>) {
+		if ( $gzip =~ /gzip/i ) {
+			chomp $gzip;
+			$gzip =~ s/<td><A href="/$url\//;
+			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} KB \]\<\/a\>\<\/td>//;
+			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} bytes \]\<\/a\>\<\/td>//;
+			push @files, $gzip if $gzip =~ /$year/;
 		}
 	}
 
@@ -71,10 +74,13 @@ html {
 }
 
 down {
+	print "downloading and extracting the files, please be patient...\n\n";
 	# downloading the needed files and extracting them.
-
 	for ( @files ) {
-		system("wget -P $dir -nc $_") if $_ =~ /$year/;
+#		system("wget -P $dir $_") if $_ =~ /$year/;
+		my $ur = $_;
+		s/$url\///;
+		getstore("$ur", "$dir/$_") or die "Unable to get page: $!";
 	}
 	system("gzip -d $dir/*.gz");
 }
@@ -84,15 +90,14 @@ merge {
 	# reading the files.
 
 	opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
-	open my $FILE05, ">", "$dir$file" or die "can't open file $file: $! ";
+	open my $FILE05, ">", "$dir$file_name" or die "can't open file $file_name: $! ";
 
-	while ( my $file = readdir($DIR) ) {
-		next if $file eq "." or $file eq "..";
-		push @file, $file;
+	while ( my $file_name = readdir($DIR) ) {
+		next if $file_name eq "." or $file_name eq "..";
+		push @file, $file_name;
 	}
 
 	# writing the needed info for the stats.
-	
 	for ( @file ) {
 		open my $FILE, "<", "$dir/$_" or die "can't open $_ : $! ";
 		if ( $_ =~ /$year/ ) {
@@ -107,7 +112,7 @@ merge {
 var {
 	# reading the file to populate the variables for the stats.
 
-	open my $FI05, "<", "$dir$file" or die "can't open file $file: $! ";
+	open my $FI05, "<", "$dir$file_name" or die "can't open file $file_name: $! ";
 
 	my %post;
 	$num = 0;
