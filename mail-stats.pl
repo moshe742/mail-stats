@@ -19,9 +19,13 @@ Make the statistics for your mailgroup. For now it uses C<gzip> so I'm not sure 
 
 =cut
 
-my ( @files, @names, $num, %names );
+my ( @files, @names, $num, $year, $input_url, $number, %names );
 our $VERSION = 0.09;
 my $file_name = "file.txt";
+
+# the data will be stored temporarily untill the script is done.
+
+my $dir = tempdir( CLEANUP => 1 );
 
 =pod
 
@@ -37,27 +41,84 @@ of the data.
 
 =cut
 
-print "which year do you want to get stats for? ";
-my $year = <STDIN>;
-chomp $year;
+# Input from the user of the program.
+input();
 
-print "Whats the URL of your mails archive? ";
-my $input_url = <STDIN>;
-chomp $input_url;
+# Finding the files we need to download and getting ready to download them.
+html();
 
-print "Percent of how many participant do you want to calculate? ";
-my $number = <STDIN>;
-chomp $number;
+# Downloading and extracting the files we want to check.
+down();
 
-# the data will be stored temporarily untill the script is done.
+# Merging the data to 1 big file for easier retrival.
+merge();
 
-my $dir = tempdir( CLEANUP => 1 );
+# Retriving the info we want for our stats.
+var();
 
-# the file we create for use to get the files of the archives we need to make stats of.
+# Calculating the stats.
+stats();
 
-html {
+sub input {
+	#enabling using @ARGV for input.
+	my $argv = @ARGV;
+	if ( $argv == 3 ) {
+		for my $variable ( @ARGV ) {
+			if ( $variable =~ /\d{4}/ ) {
+				$year = $variable;
+			} elsif ( $variable =~ /http/ ) {
+				$input_url = $variable;
+			} else {
+				$number = $variable;
+			}
+		}
+	} elsif ( $argv == 2 ) {
+		for my $variable ( @ARGV ) {
+			if ( $variable =~ /http/ ) {
+				$input_url = $variable;
+			} elsif ( $variable =~ /\d{4}/ ) {
+				$year = $variable;
+			} else {
+				$number = $variable;
+			}
+		}
+	} elsif ( $argv == 1 ) {
+		my $variable = $ARGV[0];
+		if ( $variable =~ /\d{4}/ ) {
+			$year = $variable;
+		} elsif ( $variable =~ /(http)/ ) {
+			$input_url = $variable;
+		} else {
+			$number = $variable;	
+		}
+	}
+	
+	unless ( $year ) {
+		print "which year do you want to get stats for? ";
+		$year = <STDIN>;
+		chomp $year;
+	}
+	
+	unless ( $input_url ) {
+		print "Whats the URL of your mails archive? ";
+		$input_url = <STDIN>;
+		chomp $input_url;
+	}
+
+	unless ( $number ) {
+		print "Percent of how many participant do you want to calculate? ";
+		$number = <STDIN>;
+		chomp $number;
+	}
+
+#	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
+
+}
+
+sub html {
+	# the file we create for use to get the files of the archives we need to make stats of.
 	getstore("$input_url", "$dir/mail.txt") or die "Unable to get page: $!";
-
+	
 	open my $html, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
 
 	# making the info in an easy way to read and use.
@@ -75,7 +136,7 @@ html {
 	close $html or die "can't close mail.txt: $! ";
 }
 
-down {
+sub down {
 	print "Downloading and extracting the files, please be patient...\n\n";
 	# downloading the needed files and extracting them.
 	for my $file_name ( @files ) {
@@ -86,7 +147,7 @@ down {
 	system("gzip -d $dir/*.gz");
 }
 
-merge {
+sub merge {
 	my @file;
 	# reading the files.
 
@@ -111,7 +172,7 @@ merge {
 	
 }
 
-var {
+sub var {
 	# reading the file to populate the variables for the stats.
 
 	open my $FI05, "<", "$dir$file_name" or die "can't open file $file_name: $! ";
@@ -135,7 +196,7 @@ var {
 	}
 }
 
-stats {
+sub stats {
 	my @sort = sort { $a <=> $b } ( values %names );
 
 	my $n = @names;
