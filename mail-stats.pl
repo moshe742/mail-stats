@@ -61,38 +61,34 @@ stats();
 
 sub input {
 	#enabling using @ARGV for input.
-	my $argv = @ARGV;
-	if ( $argv == 3 ) {
-		for my $variable ( @ARGV ) {
-			if ( $variable =~ /\d{4}/ ) {
-				$year = $variable;
-			} elsif ( $variable =~ /http/ ) {
-				$input_url = $variable;
-			} else {
-				$number = $variable;
-			}
+	for my $input ( @ARGV ) {
+		chomp $input;
+
+		if ( $input =~ /http:/ ) {
+			$input_url = $input;
+		} elsif ( $input =~ /\d{4}/ ) {
+			$year = $input;
+		} elsif ( $input =~ /\d/ ) {
+			$number = $input;
 		}
-	} elsif ( $argv == 2 ) {
-		for my $variable ( @ARGV ) {
-			if ( $variable =~ /http/ ) {
-				$input_url = $variable;
-			} elsif ( $variable =~ /\d{4}/ ) {
-				$year = $variable;
-			} else {
-				$number = $variable;
-			}
-		}
-	} elsif ( $argv == 1 ) {
-		my $variable = $ARGV[0];
-		if ( $variable =~ /\d{4}/ ) {
-			$year = $variable;
-		} elsif ( $variable =~ /(http)/ ) {
-			$input_url = $variable;
-		} else {
-			$number = $variable;	
-		}
+
 	}
 	
+	if ( -e $ARGV[0] ) {
+	while ( my $input = <> ) {
+		chomp $input;
+
+		if ( $input =~ /http:/ ) {
+			$input_url = $input;
+		} elsif ( $input =~ /\d{4}/ ) {
+			$year = $input;
+		} elsif ( $input =~ /\d/ ) {
+			$number = $input;
+		}
+
+	}
+	}
+
 	unless ( $year ) {
 		print "which year do you want to get stats for? ";
 		$year = <STDIN>;
@@ -111,7 +107,7 @@ sub input {
 		chomp $number;
 	}
 
-#	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
+	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
 
 }
 
@@ -122,7 +118,6 @@ sub html {
 	open my $html, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
 
 	# making the info in an easy way to read and use.
-
 	while (my $gzip = <$html>) {
 		if ( $gzip =~ /gzip/i ) {
 			chomp $gzip;
@@ -138,19 +133,21 @@ sub html {
 
 sub down {
 	print "Downloading and extracting the files, please be patient...\n\n";
+	
 	# downloading the needed files and extracting them.
 	for my $file_name ( @files ) {
 		my $url = $file_name;
 		$file_name =~ s/$input_url\///;
 		getstore("$url", "$dir/$file_name") or die "Unable to get page: $!";
 	}
+	
 	system("gzip -d $dir/*.gz");
 }
 
 sub merge {
 	my @file;
+	
 	# reading the files.
-
 	opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
 
 	while ( my $file_name = readdir($DIR) ) {
@@ -174,7 +171,6 @@ sub merge {
 
 sub var {
 	# reading the file to populate the variables for the stats.
-
 	open my $FI05, "<", "$dir$file_name" or die "can't open file $file_name: $! ";
 
 	my %post;
