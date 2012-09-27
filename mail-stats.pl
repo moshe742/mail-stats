@@ -4,7 +4,11 @@ use warnings;
 use strict;
 use v5.10;
 use LWP::Simple;
-#use List::Util::sum;
+use HTML::LinkExtor;
+use URI::URL;
+use File::Spec;
+use List::Util;
+use Compress::Zlib;
 use File::Temp qw(tempdir);
 
 =pod
@@ -21,11 +25,12 @@ Make the statistics for your mailgroup. For now it uses C<gzip> so I'm not sure 
 
 my ( @files, @names, $num, $year, $input_url, $number, %names );
 our $VERSION = 0.09;
-my $file_name = "file.txt";
 
 # the data will be stored temporarily untill the script is done.
 
 my $dir = tempdir( CLEANUP => 1 );
+
+my $file_path = File::Spec->catfile( $dir, "file.txt" );
 
 =pod
 
@@ -50,6 +55,9 @@ html();
 # Downloading and extracting the files we want to check.
 down();
 
+# Extracting the downloaded files.
+extract();
+
 # Merging the data to 1 big file for easier retrival.
 merge();
 
@@ -62,31 +70,13 @@ stats();
 sub input {
 	#enabling using @ARGV for input.
 	for my $input ( @ARGV ) {
-		chomp $input;
-
-		if ( $input =~ /http:/ ) {
-			$input_url = $input;
-		} elsif ( $input =~ /\d{4}/ ) {
-			$year = $input;
-		} elsif ( $input =~ /\d/ ) {
-			$number = $input;
-		}
-
+		_populate($input);
 	}
 	
-	if ( -e $ARGV[0] ) {
-	while ( my $input = <> ) {
-		chomp $input;
-
-		if ( $input =~ /http:/ ) {
-			$input_url = $input;
-		} elsif ( $input =~ /\d{4}/ ) {
-			$year = $input;
-		} elsif ( $input =~ /\d/ ) {
-			$number = $input;
+	if ( defined @ARGV and -e $ARGV[0] ) {
+		while ( my $input = <> ) {
+			_populate($input);
 		}
-
-	}
 	}
 
 	unless ( $year ) {
@@ -107,40 +97,44 @@ sub input {
 		chomp $number;
 	}
 
-	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
+#	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
 
 }
 
 sub html {
-	# the file we create for use to get the files of the archives we need to make stats of.
-	getstore("$input_url", "$dir/mail.txt") or die "Unable to get page: $!";
-	
-	open my $html, "<", "$dir/mail.txt" or die "can't open mail.txt: $! ";
+	# the list we create for use to get the files of the archives we need to make stats of.
 
-	# making the info in an easy way to read and use.
-	while (my $gzip = <$html>) {
-		if ( $gzip =~ /gzip/i ) {
-			chomp $gzip;
-			$gzip =~ s/<td><A href="/$input_url\//;
-			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} KB \]\<\/a\>\<\/td>//;
-			$gzip =~ s/"\>\[ Gzip'd Text \d{1,6} bytes \]\<\/a\>\<\/td>//;
-			push @files, $gzip if $gzip =~ /$year/;
-		}
-	}
+	my $ua = LWP::UserAgent->new;
 
-	close $html or die "can't close mail.txt: $! ";
+	# Make the parser.  Unfortunately, we don't know the base yet
+	# (it might be different from $url)
+	my $parse = HTML::LinkExtor->new(\&_links);
+
+	# Request document and parse it as it arrives
+	my $res = $ua->request(HTTP::Request->new(GET => $input_url),
+						sub {$parse->parse($_[0])});
+
+	# Expand all link URLs to absolute ones
+	$input_url = $res->base;
+	@files = map { $_ = url($_, $input_url)->abs; } @files;
 }
 
 sub down {
 	print "Downloading and extracting the files, please be patient...\n\n";
-	
-	# downloading the needed files and extracting them.
+
+	# downloading the needed files.
 	for my $file_name ( @files ) {
+		next if $file_name =~ /href\Z/;
 		my $url = $file_name;
-		$file_name =~ s/$input_url\///;
+		$file_name =~ s/$input_url//;
+		say "File $file_name is downloading.";
 		getstore("$url", "$dir/$file_name") or die "Unable to get page: $!";
 	}
-	
+	print "\n";
+}
+
+sub extract {
+	# Extracting the files.
 	system("gzip -d $dir/*.gz");
 }
 
@@ -151,10 +145,10 @@ sub merge {
 	opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
 
 	while ( my $file_name = readdir($DIR) ) {
-		push @file, $file_name if $file_name =~ /$year/;
+		push @file, $file_name if $file_name =~ /\Q$year\E/;
 	}
-	
-	open my $input_file, ">", "$dir$file_name" or die "can't open file $file_name: $! ";
+
+	open my $input_file, ">", "$file_path" or die "can't open file $file_path: $! ";
 	
 	# writing the needed info for the stats.
 	for my $file ( @file ) {
@@ -171,7 +165,7 @@ sub merge {
 
 sub var {
 	# reading the file to populate the variables for the stats.
-	open my $FI05, "<", "$dir$file_name" or die "can't open file $file_name: $! ";
+	open my $FI05, "<", "$file_path" or die "can't open file $file_path: $! ";
 
 	my %post;
 	$num = 0;
@@ -199,11 +193,7 @@ sub stats {
 
 	# making the statistics.
 
-	my $num_of_mails = 0;
-
-	for ( 1 .. $number ) {
-		$num_of_mails = $sort[-$_] + $num_of_mails;
-	}
+	my $num_of_mails = List::Util::sum( @sort[ -$number .. -1 ]  );
 
 	my $percent_of_people = 100 * $num_of_mails / $num;
 	my $percent_first = 100 * $sort[-1] / $num;
@@ -225,4 +215,27 @@ sub stats {
 	print "the top $number posters made about ";
 	printf("%.1f", $percent_of_people);
 	say "% of the posts";
+}
+
+sub _populate {
+	my $input = shift;
+	chomp $input;
+
+	if ( $input =~ /http:/ ) {
+		$input_url = $input;
+		return $input_url;
+	} elsif ( $input =~ /\d{4}/ ) {
+		$year = $input;
+		return $year;
+	} elsif ( $input =~ /\d/ ) {
+		$number = $input;
+		return $number;
+	}
+}
+
+sub _links {
+	# Set up a callback that collect the links
+	my($tag, @links) = @_;
+	return if $tag ne 'a';  # we only look closer at <img ...>
+	push(@files, @links) if $links[1] =~ /\Qtxt.gz\E/ and $links[1] =~ /\Q$year\E/; 
 }
