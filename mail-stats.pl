@@ -10,12 +10,13 @@ use File::Spec;
 use List::Util;
 use Compress::Zlib;
 use File::Temp qw(tempdir);
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 
 =pod
 
-=head1 statperl
+=head1 Mail-stats
 
-stats - statistics maker for mail archives of groups.
+Mail-stats - statistics maker for mail archives of groups.
 
 =head1 DESCRIPTION
 
@@ -23,7 +24,7 @@ Make the statistics for your mailgroup. For now it uses C<gzip> so I'm not sure 
 
 =cut
 
-my ( @files, @names, $num, $year, $input_url, $number, %names );
+my ( @file_names, @files, @names, $num, $year, $input_url, $number, %names );
 our $VERSION = 0.09;
 
 # the data will be stored temporarily untill the script is done.
@@ -36,9 +37,13 @@ my $file_path = File::Spec->catfile( $dir, "file.txt" );
 
 =head2 info for the script to work on.
 
-Here you will be asked the year that you want to work on and what is the mail archive url to fetch from the info.
+Here you will be asked the year that you want to work on and what is the mail archive url to fetch from the
 
-The first question is about the year you want to analyze and the second is about your site for the archives of your group.
+info.
+
+The first question is about the year you want to analyze and the second is about your site for the archives
+
+of your group.
 
 Type the url fully (including the http://), since the script use the getstore function for the fetching
 
@@ -106,8 +111,7 @@ sub html {
 
 	my $ua = LWP::UserAgent->new;
 
-	# Make the parser.  Unfortunately, we don't know the base yet
-	# (it might be different from $url)
+	# Make the parser.
 	my $parse = HTML::LinkExtor->new(\&_links);
 
 	# Request document and parse it as it arrives
@@ -127,6 +131,7 @@ sub down {
 		next if $file_name =~ /href\Z/;
 		my $url = $file_name;
 		$file_name =~ s/$input_url//;
+		push @file_names, "$dir/$file_name";
 		say "File $file_name is downloading.";
 		getstore("$url", "$dir/$file_name") or die "Unable to get page: $!";
 	}
@@ -135,7 +140,7 @@ sub down {
 
 sub extract {
 	# Extracting the files.
-	system("gzip -d $dir/*.gz");
+	gunzip "<$dir/*.txt.gz>" => "<$dir/#1.txt>" or die "gunzip failed: $GunzipError\n";
 }
 
 sub merge {
@@ -154,8 +159,8 @@ sub merge {
 	for my $file ( @file ) {
 		open my $output_file, "<", "$dir/$file" or die "can't open $file : $! ";
 		
-		while ( <$output_file> ) {
-			print $input_file $_;
+		while ( my $data = <$output_file> ) {
+			print $input_file $data;
 		}
 	}
 	
