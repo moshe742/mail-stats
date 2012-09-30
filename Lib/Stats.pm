@@ -11,8 +11,8 @@ sub stats {
 	my $number_of_participants = shift;
 	my $number_of_posts = shift;
 	my $year = shift;
-	my %names = @_;
-	my @sort = sort { $a <=> $b } ( values %names );
+	my %score_by_names = @_;
+	my @sort = sort { $a <=> $b } ( values %score_by_names );
 
 	# making the statistics.
 
@@ -24,8 +24,8 @@ sub stats {
 
 	my $firstname;
 
-	for my $name ( keys %names ) {
-		if ( $names{$name} == $sort[-1] ) {
+	for my $name ( keys %score_by_names ) {
+		if ( $score_by_names{$name} == $sort[-1] ) {
 			$firstname = $name;
 			last;
 		}

@@ -21,7 +21,7 @@ Mail-stats - statistics maker for mail archives of groups.
 
 =head1 DESCRIPTION
 
-Make the statistics for your mailgroup. For now it uses C<gzip> so I'm not sure it will work on other platforms. 
+Make the statistics for your mailgroup.
 
 =cut
 

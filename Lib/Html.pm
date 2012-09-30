@@ -14,7 +14,8 @@ sub html {
 	my $class = shift;
 	$year = shift;
 	my $input_url = shift;
-	# the list we create for use to get the files of the archives we need to make stats of.
+	# the list we create for use to get the files of the archives we need
+	# to make stats of.
 
 	my $ua = LWP::UserAgent->new;
 
@@ -33,7 +34,7 @@ sub html {
 sub _links {
 	# Set up a callback that collect the links
 	my($tag, @links) = @_;
-	return if $tag ne 'a';  # we only look closer at <img ...>
+	return if $tag ne 'a';  # we only look closer at <a ...>
 	push(@files, @links) if $links[1] =~ /txt.gz/ and (index($links[1], $year) >= 0); 
 }
 

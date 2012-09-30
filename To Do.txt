@@ -1,1 +1,3 @@
-here will be written the to do stuff for mail-stats
+TO DO
+
+should make a CPAN module.
