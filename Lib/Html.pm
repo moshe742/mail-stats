@@ -34,7 +34,7 @@ sub _links {
 	# Set up a callback that collect the links
 	my($tag, @links) = @_;
 	return if $tag ne 'a';  # we only look closer at <img ...>
-	push(@files, @links) if $links[1] =~ /\Qtxt.gz\E/ and $links[1] =~ /\Q$year\E/; 
+	push(@files, @links) if $links[1] =~ /txt.gz/ and (index($links[1], $year) >= 0); 
 }
 
 1;

@@ -3,8 +3,10 @@ package Lib::Input;
 use warnings;
 use strict;
 use v5.10;
+use Term::ReadLine;
 
 my ( $number, $year, $input_url );
+my $input = Term::ReadLine->new('Input for mail-sats');
 
 sub input {
 	
@@ -21,22 +23,18 @@ sub input {
 		}
 	}
 
+	
+
 	unless ( $year ) {
-		print "which year do you want to get stats for? ";
-		$year = <STDIN>;
-		chomp $year;
+		$year = $input->readline("which year do you want to get stats for? ");
 	}
 	
 	unless ( $input_url ) {
-		print "Whats the URL of your mails archive? ";
-		$input_url = <STDIN>;
-		chomp $input_url;
+		$input_url = $input->readline("Whats the URL of your mails archive? ");
 	}
 
 	unless ( $number ) {
-		print "Percent of how many participant do you want to calculate? ";
-		$number = <STDIN>;
-		chomp $number;
+		$number = $input->readline("Percent of how many participant do you want to calculate? ");
 	}
 
 #	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
