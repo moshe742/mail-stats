@@ -1,8 +1,7 @@
 package Lib::Merge;
 
 use v5.10;
-use warnings;
-use strict;
+use Mouse;
 
 sub merge {
 	

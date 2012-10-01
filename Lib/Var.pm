@@ -1,8 +1,9 @@
 package Lib::Var;
 
 use v5.10;
-use warnings;
-use strict;
+use Mouse;
+
+has 'name' => ( is => 'ro', isa => 'Str' );
 
 sub var {
 	

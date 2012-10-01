@@ -1,7 +1,6 @@
 package Lib::Input;
 
-use warnings;
-use strict;
+use Mouse;
 use v5.10;
 use Term::ReadLine;
 
@@ -13,17 +12,15 @@ sub input {
 	my $class = shift;
 	my @user_input = @_;
 	#enabling using @ARGV for input.
-	for my $input ( @user_input ) {
-		_populate($input);
-	}
-	
 	if ( @user_input and -e $user_input[0] ) {
 		while ( my $input = <> ) {
 			_populate($input);
 		}
+	} else {
+		for my $input ( @user_input ) {
+		   _populate($input);
+		}
 	}
-
-	
 
 	unless ( $year ) {
 		$year = $input->readline("which year do you want to get stats for? ");

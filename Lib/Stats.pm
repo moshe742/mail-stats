@@ -1,8 +1,7 @@
 package Lib::Stats;
 
 use v5.10;
-use warnings;
-use strict;
+use Mouse;
 use List::Util;
 
 sub stats {

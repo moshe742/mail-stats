@@ -1,8 +1,7 @@
 package Lib::Html;
 
 use v5.10;
-use warnings;
-use strict;
+use Mouse;
 use LWP::Simple;
 use HTML::LinkExtor;
 use URI::URL;
@@ -35,7 +34,7 @@ sub _links {
 	# Set up a callback that collect the links
 	my($tag, @links) = @_;
 	return if $tag ne 'a';  # we only look closer at <a ...>
-	push(@files, @links) if $links[1] =~ /txt.gz/ and (index($links[1], $year) >= 0); 
+	push(@files, $links[1]) if $links[1] =~ /txt.gz/ and (index($links[1], $year) >= 0);
 }
 
 1;

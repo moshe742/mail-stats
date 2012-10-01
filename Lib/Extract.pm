@@ -1,9 +1,10 @@
 package Lib::Extract;
 
 use v5.10;
-use warnings;
-use strict;
+use Mouse;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+
+has 'name' => ( is => 'ro', isa => 'Str' );
 
 sub extract {
 	
