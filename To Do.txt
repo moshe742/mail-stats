@@ -1,3 +1,4 @@
 TO DO
 
 should make a CPAN module.
+make it possible to make statistics of months, days of the week and days of the month.
