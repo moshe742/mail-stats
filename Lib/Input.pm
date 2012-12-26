@@ -4,16 +4,22 @@ use Mouse;
 use v5.10;
 use Term::ReadLine;
 
+has 'year', is => 'rw', isa => 'Int';
+has 'url', is => 'rw', isa => 'Str';
+has 'number', is => 'rw', isa => 'Int';
+
 my ( $number, $year, $input_url );
-my $input = Term::ReadLine->new('Input for mail-sats');
 
 sub input {
 	
+	my $input = Term::ReadLine->new('Input for mail-sats');
 	my $class = shift;
 	my @user_input = @_;
+	
 	#enabling using @ARGV for input.
 	if ( @user_input and -e $user_input[0] ) {
 		while ( my $input = <> ) {
+			say "input is $input";
 			_populate($input);
 		}
 	} else {
@@ -23,7 +29,7 @@ sub input {
 	}
 
 	unless ( $year ) {
-		$year = $input->readline("which year do you want to get stats for? ");
+		$class->year() = $input->readline("which year do you want to get stats for? ");
 	}
 	
 	unless ( $input_url ) {
@@ -33,8 +39,6 @@ sub input {
 	unless ( $number ) {
 		$number = $input->readline("Percent of how many participant do you want to calculate? ");
 	}
-
-#	print " the year you chose to stat is $year,\n the url you chose is $input_url,\n and the number of partisipants is $number\n";
 
 	return ( $year, $input_url, $number );
 
@@ -46,13 +50,12 @@ sub _populate {
 
 	if ( $input =~ /http:/ ) {
 		$input_url = $input;
-		return $input_url;
 	} elsif ( $input =~ /\d{4}/ ) {
 		$year = $input;
-		return $year;
 	} elsif ( $input =~ /\d/ ) {
 		$number = $input;
-		return $number;
+	} else {
+		say "_populate didn't work.";
 	}
 }
 

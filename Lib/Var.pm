@@ -3,12 +3,11 @@ package Lib::Var;
 use v5.10;
 use Mouse;
 
-has 'name' => ( is => 'ro', isa => 'Str' );
-
 sub var {
 	
 	my $class = shift;
 	my $file_path = shift;
+
 	my ( @names, %names, $number_of_posts );
 	
 	# reading the file to populate the variables for the stats.
@@ -32,7 +31,7 @@ sub var {
 		}
 	}
 	my $number_of_participants = @names;
-	
+
 	return ( $number_of_posts, $number_of_participants, %names );
 }
 

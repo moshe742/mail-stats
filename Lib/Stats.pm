@@ -4,7 +4,7 @@ use v5.10;
 use Mouse;
 use List::Util;
 
-sub stats {
+sub stats_year {
 	my $class = shift;
 	my $number = shift;
 	my $number_of_participants = shift;
@@ -29,14 +29,7 @@ sub stats {
 			last;
 		}
 	}
-
-	say "we had $number_of_participants participants and they sent $number_of_posts posts in $year";
-	print "the participant with the most posts is $firstname with ";
-	printf( "%.1f", $percent_first );
-	say "% of the posts";
-	print "the top $number posters made about ";
-	printf("%.1f", $percent_of_people);
-	say "% of the posts";
+	return ( $number_of_participants, $number_of_posts, $firstname, $percent_first, $number, $percent_of_people );
 }
 
 1;

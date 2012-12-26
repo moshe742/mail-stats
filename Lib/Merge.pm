@@ -10,7 +10,7 @@ sub merge {
 	my $dir   = shift;
 	my $file_path = shift;
 	my @file;
-	
+
 	# reading the files.
 	opendir my $DIR, "$dir" or die "can't open direcory $dir: $! ";
 
@@ -25,7 +25,6 @@ sub merge {
 		open my $output_file, "<", "$dir/$file" or die "can't open $file : $! ";
 		while ( my $data = <$output_file> ) {
 			print $input_file $data;
-			
 		}
 	}
 	
