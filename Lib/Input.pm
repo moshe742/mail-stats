@@ -18,8 +18,8 @@ sub input {
 	
 	#enabling using @ARGV for input.
 	if ( @user_input and -e $user_input[0] ) {
-		while ( my $input = <> ) {
-			say "input is $input";
+		open my $file, "<", "$user_input[0]" or die "can't open $user_input[0]: $! ";
+		while ( my $input = <$file> ) {
 			_populate($input);
 		}
 	} else {
